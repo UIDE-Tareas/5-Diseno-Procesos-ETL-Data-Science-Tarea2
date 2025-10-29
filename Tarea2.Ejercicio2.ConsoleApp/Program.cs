@@ -14,6 +14,7 @@ while (true)
         new SelectionPrompt<string>()
             .Title("[bold cyan]Seleccione una opción:[/]")
             .PageSize(10)
+            .EnableSearch()
             .AddChoices(new[]
             {
                 "1 Ver todos los productos",
@@ -22,8 +23,8 @@ while (true)
                 "4 Promedio de precios", 
                 "5️ Productos más vendidos",
                 "6️ Productos mejor valorados",
-                "🔍  Buscar producto por nombre",
-                "❌ Salir"
+                "7 Buscar producto por nombre",
+                "X Salir"
             }));
 
     switch (option)
@@ -58,8 +59,10 @@ while (true)
             break;
 
         case var o when o.Contains("Salir"):
-            AnsiConsole.MarkupLine("[bold red]Saliendo...[/]");
+            AnsiConsole.MarkupLine("\n[bold red](Presione cualquier tecla para salir...)[/]");
+            Console.ReadKey(true);
             return;
+
         case var o when o.Contains("Buscar") || o.Contains("buscar"):
             SearchProduct(products);
             break;

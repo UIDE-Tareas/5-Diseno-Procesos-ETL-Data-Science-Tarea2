@@ -124,10 +124,5 @@ namespace Tarea2.Ejercicio1.WebApi
         [GeneratedRegex(@"(\d{1,3})(\*\*\d{4}\*\*\*)([\w\sAÉÍÓÚÑ-]*)\,\s([\w\sAÉÍÓÚÑ-]*)\.(\d{1,3}\,\d{8})")]
         private static partial Regex PoliceCandidateRegex();
 
-
-        const string ANEXOI = "ANEXO I";
-        const string ANEXOII = "ANEXO II";
-        const string ANEXOIII = "ANEXO III";
-
     }
 }

@@ -11,10 +11,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowBlazorWasm", policy =>
     {
         policy
-            .WithOrigins("https://localhost:7375") 
-            .AllowAnyHeader()
+            .AllowAnyOrigin()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowAnyHeader();
     });
 });
 

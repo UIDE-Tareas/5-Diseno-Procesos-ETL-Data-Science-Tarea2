@@ -87,7 +87,7 @@ static void ShowTable(List<Product> products, string title)
     {
         table.AddRow(
             p.Id.ToString(),
-            Truncate(p.Title, 40),
+            Truncate(p.Title, 128),
             $"${p.Price:F2}",
             p.Category,
             p.Rating.Rate.ToString("F1"),

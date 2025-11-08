@@ -44,19 +44,22 @@ app.MapGet("/api/candidates/search", async (
 
     string normalized = query.Trim().ToUpper();
 
-    var candidate = await db.PoliceCandidates
+    var candidates = await db.PoliceCandidates
         .AsNoTracking()
         .Where(c =>
-            EF.Functions.Like(c.NamePlusLastName.ToUpper(), $"%{normalized}%") ||
-            EF.Functions.Like(c.LastNamePlusName.ToUpper(), $"%{normalized}%"))
-        .FirstOrDefaultAsync(ct);
+            EF.Functions.Like(c.Dni, $"%{normalized}%") || //Agregado hoy
+            EF.Functions.Like(c.NamePlusLastName, $"%{normalized}%") ||
+            EF.Functions.Like(c.LastNamePlusName, $"%{normalized}%"))
+        .Take(5)
+        .ToListAsync();
+ 
 
     if (ct.IsCancellationRequested)
         return Results.BadRequest("⏹️ Operación cancelada por el cliente.");
 
-    return candidate is null
-        ? Results.NotFound($"No se encontró ningún registro que coincida con '{query}'.")
-        : Results.Ok(candidate);
+    return candidates is null || candidates.Count == 0
+        ? Results.NotFound($"No se encontro ningún registro que coincida con '{query}'.")
+        : Results.Ok(candidates);
 
 })
 .WithName("SearchPoliceCandidate")

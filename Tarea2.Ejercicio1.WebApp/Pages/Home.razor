@@ -7,19 +7,80 @@
 
 <PageTitle>BOE - Consultar Policía</PageTitle>
 
-        <h3 class="text-center text-primary mb-4">🔍 Consultar Policía</h3>
+<style>
+    .main-container {
+        display: flex;
+        height: calc(100vh - 120px);
+        overflow: hidden;
+    }
 
-        <div class="input-group mb-3">
-            <span class="input-group-text bg-primary text-white">
-                <i class="bi bi-search"></i>
-            </span>
-            <input value="@searchQuery"
-                   @oninput="OnSearchInput"
-                   class="form-control border-primary shadow-sm"
-                   placeholder="Escribe nombre o apellidos..." />
-        </div>
+    .left-panel {
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 1rem;
+    }
 
-      
+    .right-panel {
+        width: 45%;
+        display: flex;
+        flex-direction: column;
+        background-color: #f8f9fa;
+        border-left: 3px solid #007bff33;
+        height: 100%;
+    }
+
+        .right-panel .card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .right-panel .card-header {
+            flex-shrink: 0;
+        }
+
+        .right-panel .card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+        }
+
+    iframe.pdf-viewer {
+        flex: 1;
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+    }
+
+    .candidate-card:hover {
+        transform: scale(1.01);
+        transition: 0.2s;
+        box-shadow: 0 0 10px #19875466;
+    }
+
+    .candidate-active {
+        border: 2px solid #0d6efd !important;
+        box-shadow: 0 0 8px #0d6efd88;
+    }
+</style>
+
+<h3 class="text-center text-primary mb-4">🔍 Consultar Policía</h3>
+
+<div class="input-group mb-3 w-75 mx-auto">
+    <span class="input-group-text bg-primary text-white">
+        <i class="bi bi-search"></i>
+    </span>
+    <input value="@searchQuery"
+           @oninput="OnSearchInput"
+           class="form-control border-primary shadow-sm"
+           placeholder="Escribe nombre o apellidos..." />
+</div>
+
+<div class="main-container">
+    <div class="left-panel">
         @if (isLoading)
         {
             <div class="text-center my-3">
@@ -27,23 +88,38 @@
                 <p class="mt-2 text-muted">Buscando...</p>
             </div>
         }
-        else if (candidate is not null)
+        else if (candidates.Count > 0)
         {
-            <div class="card border-success mt-3">
-                <div class="card-header bg-success text-white fw-bold">
-                    Resultado encontrado ✅
+            <h5 class="text-success fw-bold mb-3 text-center">
+                ✅ Se encontraron @candidates.Count candidatos
+            </h5>
+
+            @foreach (var c in candidates)
+            {
+                var isSelected = c.Id == selectedCandidateId;
+
+                <div class="card border-success mb-3 shadow-sm candidate-card @(isSelected ? "candidate-active" : "")"
+                     key="@c.Id">
+                    <div class="card-header bg-success text-white fw-bold">
+                        @c.Name @c.LastName
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>DNI:</strong> @c.Dni</li>
+                            <li class="list-group-item"><strong>Orden:</strong> @c.Order</li>
+                            <li class="list-group-item"><strong>Calificación:</strong> @c.FinalScore</li>
+                            <li class="list-group-item"><strong>Página Documento:</strong> @c.DocumentPageNumber</li>
+                            <li class="list-group-item"><strong>Página PDF:</strong> @c.PdfPageNumber</li>
+                        </ul>
+                        <div class="mt-3 text-end">
+                            <button class="btn btn-outline-primary btn-sm"
+                                    @onclick="() => ShowPdf(c)">
+                                📄 Ver PDF
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <h5 class="card-title text-success">@candidate.Name @candidate.LastName</h5>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item"><strong>DNI:</strong> @candidate.Dni</li>
-                        <li class="list-group-item"><strong>Orden:</strong> @candidate.Order</li>
-                        <li class="list-group-item"><strong>Calificación:</strong> @candidate.FinalScore</li>
-                        <li class="list-group-item"><strong>Página Documento:</strong> @candidate.DocumentPageNumber</li>
-                        <li class="list-group-item"><strong>Página PDF:</strong> @candidate.PdfPageNumber</li>
-                    </ul>
-                </div>
-            </div>
+            }
         }
         else if (notFound)
         {
@@ -59,25 +135,42 @@
         {
             <p class="text-center text-muted">✏️ Escribe un nombre o apellidos para buscar.</p>
         }
-   
+    </div>
+
+    <div class="right-panel shadow-sm">
+        @if (!string.IsNullOrEmpty(pdfHtml))
+        {
+            @((MarkupString)pdfHtml)
+        }
+        else
+        {
+            <div class="alert alert-info text-center m-4 align-self-center">
+                👈 Selecciona un candidato para ver el PDF aquí.
+            </div>
+        }
+    </div>
+</div>
 
 @code {
     private string searchQuery = string.Empty;
-    private BoePoliceCandidate? candidate;
+    private List<BoePoliceCandidate> candidates = new();
     private bool isLoading = false;
     private bool notFound = false;
+    private long? selectedCandidateId;
+    private string? pdfHtml;
     private CancellationTokenSource? cts;
 
     private async Task OnSearchInput(ChangeEventArgs e)
     {
         searchQuery = e.Value?.ToString() ?? string.Empty;
-        Console.WriteLine($"🟢 Evento OnSearchInput ejecutado: '{searchQuery}'");
 
         if (string.IsNullOrWhiteSpace(searchQuery))
         {
-            candidate = null;
+            candidates.Clear();
             notFound = false;
             isLoading = false;
+            pdfHtml = null;
+            selectedCandidateId = null;
             cts?.Cancel();
             await InvokeAsync(StateHasChanged);
             return;
@@ -90,39 +183,58 @@
         {
             isLoading = true;
             notFound = false;
+            pdfHtml = null;
+            selectedCandidateId = null;
             await InvokeAsync(StateHasChanged);
             await Task.Delay(400, cts.Token);
 
             var client = HttpFactory.CreateClient("ApiLocal");
             var url = $"api/candidates/search?query={Uri.EscapeDataString(searchQuery)}";
-            Debug.WriteLine($"🌐 Solicitando: {client.BaseAddress}{url}");
-
             var response = await client.GetAsync(url, cts.Token);
             if (response.IsSuccessStatusCode)
             {
-                candidate = await response.Content.ReadFromJsonAsync<BoePoliceCandidate>(cancellationToken: cts.Token);
-                notFound = false;
-                Console.WriteLine("✅ Registro encontrado");
+                var res = await response.Content.ReadFromJsonAsync<List<BoePoliceCandidate>>(cancellationToken: cts.Token);
+                candidates.Clear();
+
+                if (res is not null && res.Count > 0)
+                {
+                    candidates.AddRange(res);
+                }
+                else
+                {
+                    notFound = true;
+                }
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                candidate = null;
+                candidates.Clear();
                 notFound = true;
-                Console.WriteLine("⚠️ No se encontró registro");
             }
         }
-        catch (TaskCanceledException)
-        {
-            Console.WriteLine("⏹️ Búsqueda cancelada");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error en búsqueda: {ex.Message}");
-        }
+        catch (TaskCanceledException) { }
         finally
         {
             isLoading = false;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private void ShowPdf(BoePoliceCandidate candidate)
+    {
+        selectedCandidateId = candidate.Id;
+        var pdfUrl = $"https://www.boe.es/boe/dias/2023/06/12/pdfs/BOE-A-2023-13811.pdf#page={candidate.PdfPageNumber}&search=\"{(candidate.LastName + ", " + candidate.Name + ".")}\"";
+
+        pdfHtml = $@"
+            <div class='card border-primary h-100 d-flex flex-column'>
+                <div class='card-header bg-primary text-white fw-bold flex-shrink-0'>
+                    📘 Vista previa del BOE (pág. {candidate.PdfPageNumber})
+                </div>
+                <div class='card-body flex-grow-1 d-flex flex-column p-0'>
+                    <iframe src='{pdfUrl}' class='pdf-viewer flex-grow-1'></iframe>
+                </div>
+            </div>";
+
+        Console.WriteLine($"📄 Mostrando PDF: {pdfUrl}");
+        StateHasChanged();
     }
 }

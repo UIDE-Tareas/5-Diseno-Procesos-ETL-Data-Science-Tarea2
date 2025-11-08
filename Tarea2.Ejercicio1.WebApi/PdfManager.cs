@@ -14,6 +14,7 @@ namespace Tarea2.Ejercicio1.WebApi
         public static readonly string OUTPUT_DIR = Path.Combine(AppContext.BaseDirectory, "Downloads");
         public static readonly string OUTPUT_PDF_FILE = Path.Combine(OUTPUT_DIR, "BOE-A-2023-13811.pdf");
         public static readonly string OUTPUT_JSON_FILE = Path.Combine(OUTPUT_DIR, "BOE-A-2023-13811.json");
+        public static readonly string OUTPUT_TEXT_FILE = Path.Combine(OUTPUT_DIR, "BOE-A-2023-13811.txt");
 
         private static async Task DownloadPDFAsync()
         {
@@ -42,6 +43,7 @@ namespace Tarea2.Ejercicio1.WebApi
             int totalPages = document.NumberOfPages;
             Console.WriteLine($"📘 El PDF tiene {totalPages} páginas.\n");
             List<BoePdfPageData> boePdfPages = new();
+            StringBuilder contentBuilder = new();
             foreach (Page page in document.GetPages())
             {
                 Regex regex = RealPageNumberRegex();
@@ -51,8 +53,12 @@ namespace Tarea2.Ejercicio1.WebApi
                     PdfPageNumber = page.Number,
                     DocumentPageNumber = int.Parse(regex.Match(page.Text).Groups[2].Value),
                 };
+
+                contentBuilder.AppendLine($"--- Página PDF {boePdfPage.PdfPageNumber} / Doc {boePdfPage.DocumentPageNumber} ---\n{page.Text}\n\n");
                 boePdfPages.Add(boePdfPage);
             }
+            await File.WriteAllTextAsync(OUTPUT_TEXT_FILE, contentBuilder.ToString());
+            Console.WriteLine($"✅ TXT guardado en: {OUTPUT_JSON_FILE}");
             string json = JsonSerializer.Serialize(boePdfPages);
             await File.WriteAllTextAsync(OUTPUT_JSON_FILE, json);
             Console.WriteLine($"✅ JSON guardado en: {OUTPUT_JSON_FILE}");
@@ -66,8 +72,8 @@ namespace Tarea2.Ejercicio1.WebApi
             {
                 PoliceCandidateRegex().Matches(page.Text).ToList().ForEach(match =>
                 {
-                    string name = match.Groups[4].Value.Trim();
-                    string lastName = match.Groups[3].Value.Trim();
+                    string name = match.Groups[4].Value.Trim().ToUpper();
+                    string lastName = match.Groups[3].Value.Trim().ToUpper();
                     BoePoliceCandidate candidate = new BoePoliceCandidate
                     {
                         Order = match.Groups[1].Value,
